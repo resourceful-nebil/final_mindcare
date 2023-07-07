@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from "react";
+import jwt_decode from "jwt-decode";
+import axios from "axios";
+import "./Blog.css";
+
+
+function Blog() {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [blogs, setBlogs] = useState([]);
+  const [message, setMessage] = useState("");
+
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/posts");
+      setBlogs(response.data);
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+      setMessage("Error fetching blogs. Please try again.");
+    }
+  };
+
+  const handleTitleChange = (event) => {
+    setTitle(event.target.value);
+  };
+
+  const handleContentChange = (event) => {
+    setContent(event.target.value);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const postData = {
+      title: title,
+      content: content,
+    };
+
+    try {
+      const token = localStorage.getItem('token');
+      // const user = token.
+      await axios.post("http://localhost:5000/api/posts", postData, {
+        headers: {
+          Authorization: Bearer ${token},
+        },
+      });
+      setTitle("");
+      setContent("");
+      fetchBlogs(); // Refresh blogs after successful post
+      setMessage("Post published successfully.");
+    } catch (error) {
+      console.error("Error posting blog:", error);
+      setMessage("Error posting blog. Please try again.");
+    }
+  };
+
+
+const handleEdit = async (blogId) => {
+  // Handle edit logic for a specific blog post
+  try {
+    const token = localStorage.getItem("token");
+
+    // Fetch the blog post by blogId
+    const response = await axios.get(http://localhost:5000/api/posts/${blogId}, {
+      headers: {
+        Authorization: Bearer ${token},
+      },
+    });
+
+    const blogPost = response.data;
+    
+    // Set the title and content states to the fetched values
+    setTitle(blogPost.title);
+    setContent(blogPost.content);
+
+    // Update the UI to enable editing
+    setEditing(true);
+
+    handleSave(blogId);
+  } catch (error) {
+    console.error("Error editing blog post:", error);
+    setMessage("Error editing blog post. Please try again.");
+  }
+};
+
+const handleSave = async (blogId) => {
+  // Handle save logic
+  try {
+    const token = localStorage.getItem("token");
+
+    const postData = {
+      title: title,
+      content: content,
+    };
+
+    // Make a PUT request to update the blog post
+    await axios.put(http://localhost:5000/api/posts/${blogId}, postData, {
+      headers: {
+        Authorization: Bearer ${token},
+      },
+    });
+
+    // Perform any necessary logic after saving the blog post
+    setEditing(false);
+    setMessage("Blog post saved successfully.");
+  } catch (error) {
+    console.error("Error saving blog post:", error);
+    setMessage("Error saving blog post. Please try again.");
+  }
+};
+
+const handleCancel = () => {
+  // Handle cancel logic
+  // Reset the title and content states to their original values or discard any changes
+  setTitle("");
+  setContent("");
+  setEditing(false);
+  setMessage("");
+};
+
+
+
+const handleDelete = async (blogId) => {
+
+  try {
+    const token = localStorage.getItem("token");
+    // Delete the blog post
+    await axios.delete(http://localhost:5000/api/posts/${blogId}, {
+      headers: {
+        Authorization: Bearer ${token},
+      },
+    });
+    fetchBlogs(); // Refresh blogs after successful deletion
+    setMessage("Post deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting blog:", error);
+    setMessage("Error deleting blog. Please try again.");
+  }
+};
+return (
+  <>
+   {editing ? (
+      <div>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        ></textarea>
+        <button onClick={() => handleSave(blogs._id)}>Save</button>
+        <button onClick={handleCancel}>Cancel</button>
+      </div>
+    ) : (
+    <div className="blog-container">
+      
+      <div className="new-blog-section">
+        <h2>Post a New Blog</h2>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="titleInput">Title:</label>
+            <input
+              id="titleInput"
+              type="text"
+              value={title}
+              onChange={handleTitleChange}
+            />
+          </div>
+          <div>
+            <label htmlFor="contentInput">Content:</label>
+            <textarea
+              id="contentInput"
+              value={content}
+              onChange={handleContentChange}
+            />
+          </div>
+
+          <button type="submit">Publish</button>
+        </form>
+        {message && <p className="message">{message}</p>}
+      </div>
+      <div className="published-blogs-section">
+        <h2>Published Blogs</h2>
+        <div className="published-blogs-container">
+          {blogs.map((blog) => (
+            <div key={blog._id} className="blog-card">
+              <h3>{blog.title}</h3>
+              <i className="created-at">
+                Posted at:{new Date(blog.createdAt).toLocaleString()}
+              </i>
+              <p>{blog.content}</p>
+              {/*
+                Show edit and delete buttons only for the owner of the post
+                You can implement authentication and check the owner here
+              */}
+              {/* {blog.author ===  && ( */}
+                <>
+                  <button onClick={() => handleEdit(blog._id)}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(blog._id)}>
+                    Delete
+                  </button>
+                </>
+              {/* )} */}
+            </div>
+          ))}
+        </div>
+      </div>
+    
+    </div>
+    )}
+  </>
+);
+}
+
+export default Blog;
